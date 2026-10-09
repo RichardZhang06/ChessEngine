@@ -6,3 +6,6 @@ Notes:
 - Backend is responsible for game state and game logic as well as UCI
 
 https://ameye.dev/notes/chess-engine/
+
+UCI move documentation:
+https://publish.obsidian.md/modern-uci-doc/UCI+Docs/Miscellaneous/Move+Notation
