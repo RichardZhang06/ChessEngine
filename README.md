@@ -9,4 +9,4 @@ https://ameye.dev/notes/chess-engine/
 
 TESTING GIT COMMIT
 
-Goodbye, Richard Zhang
+alsdjfljasdlkfj
