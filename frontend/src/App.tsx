@@ -70,6 +70,9 @@ function App() {
   const [board, setBoard] = useState<Board>(parseFen(START_FEN))
   const [selected, setSelected] = useState<string | null>(null)
   const [pendingPromo, setPendingPromo] = useState<string | null>(null)
+  const [marks, setMarks] = useState<string[]>([])
+  const [arrows, setArrows] = useState<string[]>([]) // e.g. "e2e4"
+  const [drawFrom, setDrawFrom] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -81,7 +84,23 @@ function App() {
     setBoard(parseFen(g.fen))
   }
 
+  function clearAnnotations() {
+    setMarks([])
+    setArrows([])
+  }
+
+  const toggle = (list: string[], item: string) =>
+    list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
+
+  function onRightUp(sq: string) {
+    if (drawFrom === null) return
+    if (drawFrom === sq) setMarks((m) => toggle(m, sq))
+    else setArrows((a) => toggle(a, drawFrom + sq))
+    setDrawFrom(null)
+  }
+
   async function start(color: Color) {
+    clearAnnotations()
     setHuman(color)
     setGame(null)
     setGameId(null)
@@ -118,6 +137,7 @@ function App() {
   }
 
   function onSquare(sq: string) {
+    clearAnnotations()
     if (!canMove) return
     const { file, rankIdx } = squareCoords(sq)
     const piece = board[rankIdx][file]
@@ -166,7 +186,7 @@ function App() {
         <div>
           <div
             className="board"
-            style={{ '--light': theme.light, '--dark': theme.dark } as React.CSSProperties}
+            style={{ '--light': theme.light, '--dark': theme.dark, '--mark': theme.mark } as React.CSSProperties}
           >
             {ranks.map((r) =>
               files.map((f) => {
@@ -177,10 +197,18 @@ function App() {
                   'square',
                   (r + f) % 2 === 0 ? 'light' : 'dark',
                   sq === selected && 'selected',
+                  marks.includes(sq) && 'marked',
                   last && (sq === last.slice(0, 2) || sq === last.slice(2, 4)) && 'last',
                 ]
                 return (
-                  <div key={sq} className={cls.filter(Boolean).join(' ')} onClick={() => onSquare(sq)}>
+                  <div
+                    key={sq}
+                    className={cls.filter(Boolean).join(' ')}
+                    onClick={() => onSquare(sq)}
+                    onContextMenu={(e) => e.preventDefault()}
+                    onMouseDown={(e) => e.button === 2 && setDrawFrom(sq)}
+                    onMouseUp={(e) => e.button === 2 && onRightUp(sq)}
+                  >
                     {f === files[0] && <span className="coord rank">{8 - r}</span>}
                     {r === ranks[7] && <span className="coord file">{'abcdefgh'[f]}</span>}
                     {piece &&
@@ -193,6 +221,46 @@ function App() {
                 )
               }),
             )}
+            <svg className="arrows" viewBox="0 0 8 8">
+              {arrows.map((a) => {
+                const c = (sq: string) => {
+                  const { file, rankIdx } = squareCoords(sq)
+                  return {
+                    x: files.indexOf(file) + 0.5,
+                    y: ranks.indexOf(rankIdx) + 0.5,
+                  }
+                }
+                const from = c(a.slice(0, 2))
+                const to = c(a.slice(2, 4))
+                const dx = to.x - from.x
+                const dy = to.y - from.y
+                const knight = Math.abs(dx * dy) === 2
+                // Knight moves go 2 along the long axis, then 1 along the short one
+                const corner = knight
+                  ? Math.abs(dx) === 2
+                    ? { x: to.x, y: from.y }
+                    : { x: from.x, y: to.y }
+                  : from
+                const len = Math.hypot(to.x - corner.x, to.y - corner.y)
+                const ux = (to.x - corner.x) / len
+                const uy = (to.y - corner.y) / len
+                const head = 0.4
+                const bx = to.x - ux * head
+                const by = to.y - uy * head
+                const path = knight
+                  ? `M${from.x},${from.y} L${corner.x},${corner.y} L${bx},${by}`
+                  : `M${from.x},${from.y} L${bx},${by}`
+                return (
+                  <g key={a} fill="var(--mark)" stroke="var(--mark)" opacity="0.8">
+                    <path d={path} fill="none" strokeWidth="0.16" strokeLinecap="round" strokeLinejoin="round" />
+                    <polygon
+                      stroke="none"
+                      points={`${to.x},${to.y} ${bx - uy * 0.22},${by + ux * 0.22} ${bx + uy * 0.22},${by - ux * 0.22}`}
+                    />
+                  </g>
+                )
+              })}
+            </svg>
           </div>
         </div>
         <aside className="side">
