@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { Chess } from 'chess.js'
+import { useEffect, useMemo, useState } from 'react'
 import { createGame, resign, submitMove, type Color, type GameState } from './api'
 import { applyMove, parseFen, squareCoords, squareName, type Board } from './chess'
 import { backgrounds } from './backgrounds'
@@ -78,6 +79,17 @@ function App() {
 
   const over = game !== null && game.status !== 'playing'
   const canMove = game !== null && !over && !busy && game.turn === human
+
+  // Legal destination squares for the selected piece, computed locally from the server's FEN
+  const targets = useMemo(() => {
+    if (!selected || !game) return new Set<string>()
+    try {
+      const moves = new Chess(game.fen).moves({ square: selected as never, verbose: true })
+      return new Set(moves.map((m) => m.to))
+    } catch {
+      return new Set<string>()
+    }
+  }, [selected, game])
 
   function sync(g: GameState) {
     setGame(g)
@@ -198,6 +210,7 @@ function App() {
                   (r + f) % 2 === 0 ? 'light' : 'dark',
                   sq === selected && 'selected',
                   marks.includes(sq) && 'marked',
+                  targets.has(sq) && (piece ? 'capture' : 'target'),
                   last && (sq === last.slice(0, 2) || sq === last.slice(2, 4)) && 'last',
                 ]
                 return (
