@@ -1,10 +1,12 @@
-The start of a Chess Engine!
+The end of a Chess Engine!
 
 Notes:
 - Ensure we comply with UCI (Universal Chess Interface), documentation is in UCI_protocol.txt
-- Frontend is responsible for displaying the board UI and taking user input
+- Frontend is responsible for displaying the board UI and taking ELTON input
 - Backend is responsible for game state and game logic as well as UCI
 
 https://ameye.dev/notes/chess-engine/
 
 TESTING GIT COMMIT
+
+Hello Luis
