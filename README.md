@@ -107,3 +107,13 @@ Optional Endpoints
 | GET | /games/{id}/moves | Retrieve move history | 
 | POST | /games/{id}/undo | Undo a move | 
 | POST | /games/{id}/analysis | Request position analysis | 
+
+FRONTEND
+
+Request: moving a piece sends POST /games/{game_id}/moves with the body {"action": "move", "move": "e2e4"}. The /api prefix is removed by the Vite dev proxy before the request reaches the backend. The code is submitMove in api.ts.
+Move format: the move is the from square followed by the to square, such as e2e4.
+Promotion: a pawn reaching the last rank sends the promotion letter too, such as e7e8q, after you choose a piece in the picker.
+Castling: you click the king to its destination, so the request is e1g1, which is the correct UCI form. The same goes for e1c1, e8g8 and e8c8.
+Resign: the Resign button sends the same endpoint with {"action": "resign"}.
+After the response: the board replaces its own guess with the fen from the server, so the rook on a castle and the captured pawn on en passant show up correctly. The move list, whose turn it is and the game status are taken from the response too.
+Errors: a 400, 404, 409 or 500 reverts the move on the board and shows the error message in the side panel.
