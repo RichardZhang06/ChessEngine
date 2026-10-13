@@ -15,7 +15,18 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 file(GLOB ENGINE_SOURCES src/*.cpp)
 list(REMOVE_ITEM ENGINE_SOURCES ${CMAKE_SOURCE_DIR}/src/main.cpp)
 
-add_library(engine_core STATIC ${ENGINE_SOURCES})
+# Compile the opening book (book/openings.txt, built by tools/build_book.py) into the binary as a byte array.
+set(BOOK_TXT ${CMAKE_SOURCE_DIR}/book/openings.txt)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOOK_TXT})
+file(READ ${BOOK_TXT} BOOK_HEX HEX)
+string(LENGTH "${BOOK_HEX}" BOOK_HEX_LENGTH)
+math(EXPR BOOK_SIZE "${BOOK_HEX_LENGTH} / 2")
+string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," BOOK_BYTES "${BOOK_HEX}")
+file(WRITE ${CMAKE_BINARY_DIR}/book_data.cpp
+  "#include <cstddef>\nextern const unsigned char EMBEDDED_BOOK[];\nextern const size_t EMBEDDED_BOOK_SIZE;\n"
+  "const unsigned char EMBEDDED_BOOK[] = {${BOOK_BYTES}0};\nconst size_t EMBEDDED_BOOK_SIZE = ${BOOK_SIZE};\n")
+
+add_library(engine_core STATIC ${ENGINE_SOURCES} ${CMAKE_BINARY_DIR}/book_data.cpp)
 target_include_directories(engine_core PUBLIC src)
 find_package(Threads REQUIRED)
 target_link_libraries(engine_core PUBLIC Threads::Threads)
