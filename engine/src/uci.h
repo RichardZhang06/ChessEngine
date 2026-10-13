@@ -3,10 +3,12 @@
 #include <functional>
 #include <istream>
 #include <memory>
+#include <random>
 #include <mutex>
 #include <string>
 #include <thread>
 
+#include "book.h"
 #include "position.h"
 #include "search.h"
 #include "tt.h"
@@ -36,11 +38,16 @@ class Uci {
   void stop_search();
   void send(const std::string& line);
 
+  bool play_book_move();
+
   Output out_;
   std::mutex out_mutex_;
   Position pos_;
   TranspositionTable tt_;
   Search search_;
+  OpeningBook book_;
+  bool own_book_ = false;
+  std::mt19937_64 book_rng_;
   std::thread worker_;
 
   // Lets an `infinite` search wait for `stop` before reporting its best move.

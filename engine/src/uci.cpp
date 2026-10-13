@@ -12,7 +12,9 @@ constexpr const char* ENGINE_AUTHOR = "Richard Zhang";
 constexpr int DEFAULT_HASH_MB = 16;
 }  // namespace
 
-Uci::Uci(Output out) : out_(std::move(out)), tt_(DEFAULT_HASH_MB), search_(tt_) {}
+Uci::Uci(Output out) : out_(std::move(out)), tt_(DEFAULT_HASH_MB), search_(tt_), book_rng_(std::random_device{}()) {
+  book_.load_embedded();
+}
 
 Uci::~Uci() { stop_search(); }
 
@@ -52,6 +54,9 @@ bool Uci::handle(const std::string& line) {
     send(std::string("id name ") + ENGINE_NAME);
     send(std::string("id author ") + ENGINE_AUTHOR);
     send("option name Hash type spin default " + std::to_string(DEFAULT_HASH_MB) + " min 1 max 4096");
+    send("option name OwnBook type check default false");
+    send("option name BookFile type string default <embedded>");
+    send("option name BookSeed type spin default 0 min 0 max 2147483647");
     send("uciok");
   } else if (cmd == "isready") {
     send("readyok");
@@ -90,7 +95,22 @@ void Uci::cmd_setoption(std::istringstream& args) {
   value = first == std::string::npos ? "" : value.substr(first);
 
   for (char& c : name) c = char(std::tolower(static_cast<unsigned char>(c)));
-  if (name == "hash") {
+  if (name == "ownbook") {
+    own_book_ = value == "true";
+  } else if (name == "bookfile") {
+    bool ok = (value.empty() || value == "<embedded>") ? book_.load_embedded() : book_.load_file(value);
+    if (!ok) {
+      send("info string could not load book: " + value);
+      book_.load_embedded();
+    }
+  } else if (name == "bookseed") {
+    try {
+      unsigned long seed = std::stoul(value);
+      book_rng_.seed(seed ? seed : std::random_device{}());  // 0 means a different choice every game
+    } catch (...) {
+      send("info string invalid BookSeed value: " + value);
+    }
+  } else if (name == "hash") {
     try {
       int mb = std::stoi(value);
       if (mb < 1) mb = 1;
@@ -158,7 +178,17 @@ void Uci::cmd_go(std::istringstream& args) {
     else if (token == "nodes" || token == "mate") number(v);  // accepted but not supported
   }
   if (!any) limits.infinite = true;  // plain `go` means think until told to stop
+  if (own_book_ && !limits.infinite && play_book_move()) return;
   start_search(limits);
+}
+
+// With OwnBook on, answer straight from the book while the game is still in known theory.
+bool Uci::play_book_move() {
+  Move m = book_.pick(pos_, book_rng_);
+  if (m == NO_MOVE) return false;
+  send("info string book move " + move_to_uci(m));
+  send("bestmove " + move_to_uci(m));
+  return true;
 }
 
 void Uci::cmd_perft(int depth) {
