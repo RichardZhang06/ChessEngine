@@ -4,7 +4,8 @@
 //   cd frontend && VITE_BACKEND_URL=http://localhost:8000 npm test
 import { createServer, type ViteDevServer } from 'vite'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { ApiError, createGame, resign, submitMove, type GameState } from './api'
+import { analyze, ApiError, createGame, resign, submitMove, type GameState } from './api'
+import { formatEvaluation, toWhitePerspective } from './evaluation'
 
 const backend = import.meta.env.VITE_BACKEND_URL as string | undefined
 
@@ -90,6 +91,32 @@ describe.skipIf(!backend)('frontend <-> backend contract', () => {
     const error = await submitMove(game_id, 'e2e4').catch((e) => e)
     expect(error).toBeInstanceOf(ApiError)
     expect(error.status).toBe(409)
+  })
+
+  it('analyzes the current position in the shape the evaluation display expects', async () => {
+    const { game_id } = await createGame('white')
+    const result = await analyze(game_id, 200)
+    expect(result.bestmove).toMatch(/^[a-h][1-8][a-h][1-8][qrbn]?$/)
+    expect(result.depth).toBeGreaterThanOrEqual(1)
+    expect(Array.isArray(result.pv)).toBe(true)
+    expect(result.pv[0]).toBe(result.bestmove)
+    // either a centipawn score or a mate distance, never both and never neither
+    expect((result.score_cp === null) !== (result.mate === null)).toBe(true)
+    const evaluation = toWhitePerspective(result, 'white')
+    expect(evaluation).not.toBeNull()
+    expect(formatEvaluation(evaluation)).toMatch(/^([+-]\d+\.\d\d|0\.00|-?M\d+)$/)
+    // the opening position is about equal
+    if (evaluation?.cp !== null && evaluation?.cp !== undefined) expect(Math.abs(evaluation.cp)).toBeLessThan(150)
+  })
+
+  it('analysis does not change the game, and 404s for an unknown game', async () => {
+    const created = await createGame('white')
+    await analyze(created.game_id, 100)
+    const g = await submitMove(created.game_id, 'e2e4') // still our move and nothing was played by the analysis
+    expect(g.moves[0]).toBe('e2e4')
+    const error = await analyze('does-not-exist').catch((e) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(404)
   })
 
   it('plays a whole game of legal moves without the two sides disagreeing', async () => {

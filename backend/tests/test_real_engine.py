@@ -61,3 +61,19 @@ def test_engine_mates_in_one(client):
     assert body["last_move"] == "d8h4"
     assert body["status"] == "checkmate"
     assert body["result"] == "0-1"
+
+
+def test_analysis_score_is_from_the_side_to_move(client):
+    # The frontend's evaluation bar flips the sign when Black is to move, so this is part of the API contract.
+    # 1.e4 e5 2.Qh5 Qh4?? 3.Qxh4 wins Black's queen for nothing: Black to move is much worse, then White to move
+    # (after a harmless 3...Nf6) is much better. The engine is always given moves from the start position.
+    gid = client.post("/games", json={"color": "white"}).json()["game_id"]
+    game = client.app.state.store.get(gid)
+    for move in ["e2e4", "e7e5", "d1h5", "d8h4", "h5h4"]:
+        game.board.push_uci(move)
+    black_to_move = client.post(f"/games/{gid}/analysis").json()
+    assert black_to_move["score_cp"] is not None and black_to_move["score_cp"] < -500
+
+    game.board.push_uci("g8f6")
+    white_to_move = client.post(f"/games/{gid}/analysis").json()
+    assert white_to_move["score_cp"] is not None and white_to_move["score_cp"] > 500

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, createGame, resign, submitMove } from './api'
+import { analyze, ApiError, createGame, resign, submitMove } from './api'
 
 // What the backend promises in the README. These mocked tests pin down what the client sends and how it reads replies.
 const STATE = {
@@ -61,6 +61,28 @@ describe('requests', () => {
     expect(lastRequest()).toMatchObject({ url: '/api/games/abc/moves', body: { action: 'resign' } })
     expect(state.status).toBe('resigned')
     expect(state.result).toBe('0-1')
+  })
+})
+
+describe('analysis', () => {
+  const RESULT = { bestmove: 'e2e4', depth: 7, score_cp: 31, mate: null, pv: ['e2e4', 'e7e5'] }
+
+  it('POSTs to the analysis endpoint with an optional time limit', async () => {
+    reply(200, RESULT)
+    const result = await analyze('abc', 300)
+    expect(lastRequest()).toMatchObject({ url: '/api/games/abc/analysis', method: 'POST', body: { movetime_ms: 300 } })
+    expect(result).toEqual(RESULT)
+  })
+
+  it('sends an empty body when no time limit is given', async () => {
+    reply(200, RESULT)
+    await analyze('abc')
+    expect(lastRequest().body).toEqual({})
+  })
+
+  it('maps errors like the other calls', async () => {
+    reply(404, {})
+    await expect(analyze('missing')).rejects.toMatchObject({ status: 404, message: 'Game not found' })
   })
 })
 
