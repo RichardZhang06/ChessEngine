@@ -50,3 +50,7 @@ button:disabled { opacity: 0.5; cursor: default; }
   content: ''; position: absolute; inset: 4%; border-radius: 50%;
   box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.3); pointer-events: none;
 }
+.board { touch-action: none; }
+.square img.drag-origin { opacity: 0.35; }
+.ghost { position: fixed; z-index: 1000; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.ghost img { width: 90%; height: 90%; object-fit: contain; }

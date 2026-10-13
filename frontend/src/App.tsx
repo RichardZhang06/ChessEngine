@@ -1,7 +1,7 @@
 import { Chess } from 'chess.js'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createGame, resign, submitMove, type Color, type GameState } from './api'
-import { applyMove, parseFen, squareCoords, squareName, type Board } from './chess'
+import { applyMove, parseFen, squareCoords, squareName, type Board, type Piece } from './chess'
 import { backgrounds } from './backgrounds'
 import { boardThemes } from './boards'
 import { pieceImage, pieceLabel, pieceSets } from './pieces'
@@ -75,6 +75,18 @@ function App() {
   const [arrows, setArrows] = useState<string[]>([]) // e.g. "e2e4"
   const [drawFrom, setDrawFrom] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Piece dragging: dragRef tracks the gesture, ghost is the piece drawn under the cursor
+  const dragRef = useRef<{
+    from: string
+    piece: Piece
+    startX: number
+    startY: number
+    size: number
+    active: boolean
+  } | null>(null)
+  const [ghost, setGhost] = useState<{ piece: Piece; x: number; y: number; size: number; from: string } | null>(null)
+  const suppressClick = useRef(false) // a drag ends with a click event we don't want to act on
+  const latest = useRef({ targets: new Set<string>(), attemptMove: (_from: string, _to: string) => {} })
   const [error, setError] = useState<string | null>(null)
 
   const over = game !== null && game.status !== 'playing'
@@ -148,7 +160,17 @@ function App() {
     }
   }
 
+  function attemptMove(from: string, to: string) {
+    const { rankIdx } = squareCoords(to)
+    const src = squareCoords(from)
+    const p = board[src.rankIdx][src.file]
+    const lastRank = human === 'white' ? 0 : 7
+    if (p?.type === 'p' && rankIdx === lastRank) setPendingPromo(from + to)
+    else play(from + to)
+  }
+
   function onSquare(sq: string) {
+    if (suppressClick.current) return
     clearAnnotations()
     if (!canMove) return
     const { file, rankIdx } = squareCoords(sq)
@@ -158,12 +180,64 @@ function App() {
       setSelected(piece && piece.color === human ? sq : null)
       return
     }
-    const moving = squareCoords(selected)
-    const p = board[moving.rankIdx][moving.file]
-    const lastRank = human === 'white' ? 0 : 7
-    if (p?.type === 'p' && rankIdx === lastRank) setPendingPromo(selected + sq)
-    else play(selected + sq)
+    attemptMove(selected, sq)
   }
+
+  function startDrag(sq: string, e: React.PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0 || !canMove) return
+    const { file, rankIdx } = squareCoords(sq)
+    const piece = board[rankIdx][file]
+    if (!piece || piece.color !== human) return
+    dragRef.current = {
+      from: sq,
+      piece,
+      startX: e.clientX,
+      startY: e.clientY,
+      size: e.currentTarget.getBoundingClientRect().width,
+      active: false,
+    }
+  }
+
+  useEffect(() => {
+    function move(e: PointerEvent) {
+      const d = dragRef.current
+      if (!d) return
+      if (!d.active && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > 4) {
+        d.active = true
+        setSelected(d.from)
+        setMarks([])
+        setArrows([])
+      }
+      if (d.active) setGhost({ piece: d.piece, x: e.clientX, y: e.clientY, size: d.size, from: d.from })
+    }
+    function up(e: PointerEvent) {
+      const d = dragRef.current
+      dragRef.current = null
+      if (!d?.active) return
+      setGhost(null)
+      suppressClick.current = true
+      setTimeout(() => (suppressClick.current = false), 0)
+      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+      const to = el?.closest<HTMLElement>('[data-square]')?.dataset.square
+      if (to && to !== d.from && latest.current.targets.has(to)) latest.current.attemptMove(d.from, to)
+    }
+    function cancel() {
+      dragRef.current = null
+      setGhost(null)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+    }
+  }, [])
+
+  useEffect(() => {
+    latest.current = { targets, attemptMove }
+  })
 
   async function onResign() {
     if (!gameId) return
@@ -217,7 +291,9 @@ function App() {
                   <div
                     key={sq}
                     className={cls.filter(Boolean).join(' ')}
+                    data-square={sq}
                     onClick={() => onSquare(sq)}
+                    onPointerDown={(e) => startDrag(sq, e)}
                     onContextMenu={(e) => e.preventDefault()}
                     onMouseDown={(e) => e.button === 2 && setDrawFrom(sq)}
                     onMouseUp={(e) => e.button === 2 && onRightUp(sq)}
@@ -226,7 +302,12 @@ function App() {
                     {r === ranks[7] && <span className="coord file">{'abcdefgh'[f]}</span>}
                     {piece &&
                       (img ? (
-                        <img src={img} alt={pieceLabel(piece)} draggable={false} />
+                        <img
+                          src={img}
+                          alt={pieceLabel(piece)}
+                          draggable={false}
+                          className={ghost?.from === sq ? 'drag-origin' : undefined}
+                        />
                       ) : (
                         <span className="missing">{piece.type}</span>
                       ))}
@@ -349,6 +430,18 @@ function App() {
           )}
         </aside>
       </div>
+      {ghost && (
+        <div
+          className="ghost"
+          style={{ left: ghost.x - ghost.size / 2, top: ghost.y - ghost.size / 2, width: ghost.size, height: ghost.size }}
+        >
+          {pieceImage(ghost.piece, pieceSet) ? (
+            <img src={pieceImage(ghost.piece, pieceSet)} alt="" draggable={false} />
+          ) : (
+            <span className="missing">{ghost.piece.type}</span>
+          )}
+        </div>
+      )}
       {pendingPromo && (
         <div className="promo">
           {(['q', 'r', 'b', 'n'] as const).map((t) => {
