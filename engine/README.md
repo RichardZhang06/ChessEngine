@@ -63,6 +63,7 @@ if you intentionally trade strength for something else, update the baseline in t
 | `src/movegen.*` | Legal move generation, perft, checkmate/stalemate/draw detection |
 | `src/eval.*` | Material, piece-square tables, bishop pair, passed pawns |
 | `src/tt.*` | Transposition table |
+| `src/book.*`, `book/` | Opening book (compiled in), built from the Lichess openings dataset |
 | `src/search.*` | Iterative deepening alpha-beta (PVS, null move, LMR, quiescence) and time management |
 | `src/uci.*`, `src/main.cpp` | UCI protocol loop |
 | `tools/` | `match.py` (vs Stockfish), `regression.py` + `sample_engine.cpp` (rating regression test), `ratings.json` |
@@ -70,9 +71,16 @@ if you intentionally trade strength for something else, update the baseline in t
 
 ## Options
 
-`Hash` (MB, default 16, range 1-4096).
+- `Hash` (MB, default 16, range 1-4096)
+- `OwnBook` (default false): answer `go` from the opening book while the game is in known theory. Ignored for
+  `go infinite`. The backend turns it on.
+- `BookFile` (default `<embedded>`): load a different book (same text format as `book/openings.txt`).
+- `BookSeed` (default 0): seed for choosing among book moves; 0 gives a different choice each time.
+
+The default book is built from the Lichess opening dataset (CC0) by `tools/build_book.py` and compiled into the
+binary; see `book/README.md`.
 
 ## Ideas for later
 
 Magic bitboards, SEE, aspiration windows, a better evaluation (mobility, king safety, pawn structure),
-an opening book, pondering and multithreading.
+an endgame tablebase, a larger opening book, pondering and multithreading.

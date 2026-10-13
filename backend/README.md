@@ -19,6 +19,7 @@ The frontend dev server proxies `/api/*` to port 8000.
 | -------- | ------- | ------- |
 | `ENGINE_PATH` | `../engine/build/engine` | UCI engine executable. If the file doesn't exist the backend logs a warning and plays random legal moves instead. |
 | `ENGINE_MOVETIME_MS` | `1000` | Think time per engine move. |
+| `ENGINE_OWNBOOK` | `true` | Send `OwnBook true` to the engine so it plays from its opening book while the game is in known theory (`false` to turn off). |
 | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated allowed origins. |
 
 ## Layout

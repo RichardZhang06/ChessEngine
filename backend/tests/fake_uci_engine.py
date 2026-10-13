@@ -13,6 +13,7 @@ args = sys.argv[1:]
 crash_marker = Path(args[args.index("--crash-once") + 1]) if "--crash-once" in args else None
 hang = "--hang" in args
 moves: list[str] = []
+options: dict[str, str] = {}
 
 for line in sys.stdin:
     parts = line.split()
@@ -21,6 +22,9 @@ for line in sys.stdin:
     cmd = parts[0]
     if cmd == "uci":
         print("id name FakeEngine\nid author tests\nuciok", flush=True)
+    elif cmd == "setoption":
+        # setoption name <name> value <value>
+        options[parts[2]] = parts[parts.index("value") + 1] if "value" in parts else ""
     elif cmd == "isready":
         print("readyok", flush=True)
     elif cmd == "position":
@@ -36,8 +40,10 @@ for line in sys.stdin:
             board.push_uci(m)
         legal = sorted(m.uci() for m in board.legal_moves)
         if legal:
-            print(f"info depth 1 score cp 25 nodes 10 pv {legal[0]}", flush=True)
-            print(f"bestmove {legal[0]}", flush=True)
+            # with OwnBook on, play the last move instead of the first, so tests can tell the option arrived
+            pick = legal[-1] if options.get("OwnBook") == "true" else legal[0]
+            print(f"info depth 1 score cp 25 nodes 10 pv {pick}", flush=True)
+            print(f"bestmove {pick}", flush=True)
         else:
             print("bestmove 0000", flush=True)
     elif cmd == "quit":

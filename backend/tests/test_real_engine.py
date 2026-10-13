@@ -15,7 +15,7 @@ pytestmark = pytest.mark.skipif(not ENGINE.is_file(), reason=f"engine binary not
 @pytest.fixture
 def client():
     settings = Settings(engine_movetime_ms=100)
-    with TestClient(create_app(engine=UCIEngine(ENGINE), settings=settings)) as c:
+    with TestClient(create_app(engine=UCIEngine(ENGINE, options=settings.engine_options), settings=settings)) as c:
         yield c
 
 
@@ -24,6 +24,12 @@ def test_engine_opens_as_white_when_human_is_black(client):
     assert len(body["moves"]) == 1
     board = chess.Board()
     assert chess.Move.from_uci(body["moves"][0]) in board.legal_moves
+
+
+def test_engine_opens_from_its_book(client):
+    # OwnBook is on by default, so the engine's first move comes from the main opening lines
+    openings = {client.post("/games", json={"color": "black"}).json()["moves"][0] for _ in range(12)}
+    assert openings <= {"e2e4", "d2d4", "c2c4", "g1f3"}
 
 
 def test_engine_replies_with_legal_moves(client):

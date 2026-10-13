@@ -57,33 +57,40 @@ def _parse_info(line: str, analysis: Analysis) -> None:
 
 class UCIEngine:
     def __init__(
-        self, path: Path, args: tuple[str, ...] = (), startup_timeout: float = 10.0, search_slack: float = 5.0
+        self,
+        path: Path,
+        args: tuple[str, ...] = (),
+        options: dict[str, str] | None = None,
+        startup_timeout: float = 10.0,
+        search_slack: float = 5.0,
     ):
         self._path = path
         self._args = args
+        self._options = options or {}  # UCI options sent with `setoption` after the handshake
         self._startup_timeout = startup_timeout
         self._search_slack = search_slack
         self._proc: asyncio.subprocess.Process | None = None
         self._lock = asyncio.Lock()
 
     async def best_move(self, moves: list[str], movetime_ms: int) -> str | None:
-        return (await self._run(moves, movetime_ms)).bestmove
+        return (await self._run(moves, movetime_ms, use_book=True)).bestmove
 
     async def analyze(self, moves: list[str], movetime_ms: int) -> Analysis:
-        return await self._run(moves, movetime_ms)
+        # Analysis must really search (score, depth, pv), so it never uses the opening book
+        return await self._run(moves, movetime_ms, use_book=False)
 
     async def close(self) -> None:
         async with self._lock:
             await self._kill(graceful=True)
 
-    async def _run(self, moves: list[str], movetime_ms: int) -> Analysis:
+    async def _run(self, moves: list[str], movetime_ms: int, use_book: bool) -> Analysis:
         async with self._lock:
             last_error: Exception | None = None
             for _ in range(2):  # one automatic restart if the engine died or hung
                 try:
                     if self._proc is None or self._proc.returncode is not None:
                         await self._start()
-                    return await self._search(moves, movetime_ms)
+                    return await self._search(moves, movetime_ms, use_book)
                 except (EngineError, OSError, asyncio.TimeoutError) as e:
                     log.warning("engine failure, restarting: %r", e)
                     last_error = e
@@ -101,10 +108,14 @@ class UCIEngine:
         async with asyncio.timeout(self._startup_timeout):
             await self._send("uci")
             await self._read_until("uciok")
+            for name, value in self._options.items():
+                await self._send(f"setoption name {name} value {value}")
             await self._send("isready")
             await self._read_until("readyok")
 
-    async def _search(self, moves: list[str], movetime_ms: int) -> Analysis:
+    async def _search(self, moves: list[str], movetime_ms: int, use_book: bool) -> Analysis:
+        if self._options.get("OwnBook") == "true":
+            await self._send(f"setoption name OwnBook value {'true' if use_book else 'false'}")
         position = "position startpos" + (" moves " + " ".join(moves) if moves else "")
         analysis = Analysis()
         async with asyncio.timeout(movetime_ms / 1000 + self._search_slack):
@@ -170,8 +181,8 @@ class RandomEngine:
         pass
 
 
-def build_engine(path: Path) -> Engine:
+def build_engine(path: Path, options: dict[str, str] | None = None) -> Engine:
     if path.is_file():
-        return UCIEngine(path)
+        return UCIEngine(path, options=options)
     log.warning("No engine binary at %s, falling back to a random-move engine", path)
     return RandomEngine()

@@ -30,6 +30,26 @@ async def test_position_is_sent_with_moves():
         await engine.close()
 
 
+async def test_options_are_sent_after_the_handshake():
+    plain, with_book = script_engine(), UCIEngine(Path(sys.executable), args=(str(FAKE),), options={"OwnBook": "true"})
+    try:
+        assert await plain.best_move([], 50) == "a2a3"  # first legal move
+        assert await with_book.best_move([], 50) == "h2h4"  # the fake plays the last move once OwnBook arrives
+    finally:
+        await plain.close()
+        await with_book.close()
+
+
+async def test_analysis_does_not_use_the_book():
+    engine = UCIEngine(Path(sys.executable), args=(str(FAKE),), options={"OwnBook": "true"})
+    try:
+        assert await engine.best_move([], 50) == "h2h4"  # book on for game moves
+        assert (await engine.analyze([], 50)).bestmove == "a2a3"  # off for analysis
+        assert await engine.best_move([], 50) == "h2h4"  # and back on afterwards
+    finally:
+        await engine.close()
+
+
 async def test_analysis_parses_info():
     engine = script_engine()
     try:

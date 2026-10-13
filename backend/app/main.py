@@ -17,7 +17,7 @@ def create_app(engine: Engine | None = None, settings: Settings | None = None) -
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        app.state.engine = engine or build_engine(settings.engine_path)
+        app.state.engine = engine or build_engine(settings.engine_path, settings.engine_options)
         yield
         await app.state.engine.close()
 
