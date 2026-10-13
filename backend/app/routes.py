@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from . import service
 from .config import Settings
 from .engine import Engine
-from .models import Color, CreatedGame, CreateGameRequest, GameState, MoveRequest
+from .models import Color, CreatedGame, CreateGameRequest, GameDetail, GameState, MoveRequest
 from .rules import IllegalMove, parse_legal_move
 from .store import Game, GameStore
 
@@ -79,3 +79,9 @@ async def submit_move(
                 game.board.pop()  # leave the game as it was so the client can retry
                 raise
         return service.game_state(game)
+
+
+@router.get("/games/{game_id}", response_model=GameDetail)
+async def get_game(game_id: str, store: GameStore = Depends(get_store)):
+    """Current state of a game, including the human's color, so a client can resume after a refresh."""
+    return service.game_detail(find_game(game_id, store))

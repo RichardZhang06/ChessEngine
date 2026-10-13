@@ -3,7 +3,7 @@
 import chess
 
 from .engine import Engine, EngineError
-from .models import Color, CreatedGame, GameState
+from .models import Color, CreatedGame, GameDetail, GameState
 from .rules import evaluate
 from .store import Game
 
@@ -28,6 +28,10 @@ def game_state(game: Game) -> GameState:
 
 def created_game(game: Game) -> CreatedGame:
     return CreatedGame(game_id=game.id, **game_state(game).model_dump())
+
+
+def game_detail(game: Game) -> GameDetail:
+    return GameDetail(color=game.human, **created_game(game).model_dump())
 
 
 async def engine_reply(game: Game, engine: Engine, movetime_ms: int) -> None:
