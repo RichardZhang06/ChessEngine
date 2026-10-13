@@ -117,3 +117,8 @@ Castling: you click the king to its destination, so the request is e1g1, which i
 Resign: the Resign button sends the same endpoint with {"action": "resign"}.
 After the response: the board replaces its own guess with the fen from the server, so the rook on a castle and the captured pawn on en passant show up correctly. The move list, whose turn it is and the game status are taken from the response too.
 Errors: a 400, 404, 409 or 500 reverts the move on the board and shows the error message in the side panel.
+
+Building and running
+- Engine: see engine/README.md (`cmake -B build && cmake --build build` in engine/, binary at engine/build/engine)
+- Backend: see backend/README.md
+- Frontend: `npm install && npm run dev` in frontend/
