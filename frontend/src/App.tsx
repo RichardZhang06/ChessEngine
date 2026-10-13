@@ -153,11 +153,11 @@ function App() {
     if (!canMove) return
     const { file, rankIdx } = squareCoords(sq)
     const piece = board[rankIdx][file]
+    if (sq === selected) return setSelected(null) // clicking the selected piece again deselects it
     if (selected === null || (piece && piece.color === human)) {
       setSelected(piece && piece.color === human ? sq : null)
       return
     }
-    if (selected === sq) return setSelected(null)
     const moving = squareCoords(selected)
     const p = board[moving.rankIdx][moving.file]
     const lastRank = human === 'white' ? 0 : 7
