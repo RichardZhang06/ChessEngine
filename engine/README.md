@@ -22,6 +22,19 @@ go movetime 1000
 
 Extras: `d` prints the board, `go perft N` prints per-move node counts.
 
+## Measuring strength
+
+`tools/match.py` plays the engine against Stockfish at limited strength (`UCI_Elo`) and prints W/D/L plus an Elo
+estimate. It needs Stockfish (`brew install stockfish`) and python-chess (the backend's virtualenv has it):
+
+```
+backend/.venv/bin/python engine/tools/match.py --elo 1600 1900 2200 --games 40 --movetime 100 --workers 8
+```
+
+Each opening is played with both colors. Stockfish's `UCI_Elo` is calibrated for long time controls, so at
+100 ms per move the absolute numbers are unreliable (higher levels come out much weaker than nominal). Use it mainly
+to compare two versions of this engine: build both and run each against the same Stockfish levels.
+
 ## Layout
 
 | File | What it does |
