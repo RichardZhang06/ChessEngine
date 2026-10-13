@@ -69,7 +69,7 @@ async def submit_move(
     async with game.lock:
         if service.is_over(game):
             raise HTTPException(409, "Game is already over")
-        if game.board.turn != game.human.chess:
+        if game.board.turn != game.human.chess_color:
             raise HTTPException(409, "It is not your turn")
 
         if body.action == "resign":

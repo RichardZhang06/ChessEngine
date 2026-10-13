@@ -55,9 +55,9 @@ def undo_last_turn(game: Game) -> bool:
     Returns False, leaving the game untouched, if the human has no move to take back.
     """
     board = game.board.copy()
-    if board.move_stack and board.turn == game.human.chess:
+    if board.move_stack and board.turn == game.human.chess_color:
         board.pop()  # the engine's reply
-    if not board.move_stack or board.turn == game.human.chess:
+    if not board.move_stack or board.turn == game.human.chess_color:
         return False
     board.pop()  # the human's move
     game.board = board

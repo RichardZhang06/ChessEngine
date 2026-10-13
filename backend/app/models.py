@@ -12,7 +12,7 @@ class Color(str, Enum):
     BLACK = "black"
 
     @property
-    def chess(self) -> chess.Color:
+    def chess_color(self) -> chess.Color:
         return chess.WHITE if self is Color.WHITE else chess.BLACK
 
     @classmethod
