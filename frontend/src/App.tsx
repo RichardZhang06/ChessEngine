@@ -148,7 +148,6 @@ function App() {
     const prev = board
     setBoard(applyMove(board, move))
     setSelected(null)
-    clearAnnotations() // arrows and highlights last until the move is made
     setBusy(true)
     setError(null)
     try {
@@ -172,6 +171,7 @@ function App() {
 
   function onSquare(sq: string) {
     if (suppressClick.current) return
+    clearAnnotations()
     if (!canMove) return
     const { file, rankIdx } = squareCoords(sq)
     const piece = board[rankIdx][file]
@@ -205,6 +205,8 @@ function App() {
       if (!d.active && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > 4) {
         d.active = true
         setSelected(d.from)
+        setMarks([])
+        setArrows([])
       }
       if (d.active) setGhost({ piece: d.piece, x: e.clientX, y: e.clientY, size: d.size, from: d.from })
     }
