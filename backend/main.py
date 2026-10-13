@@ -1,7 +1,2 @@
-from fastapi import FastAPI
-
-app = FastAPI()
-
-@app.get("/")
-async def read_root():
-    return {"message": "Hello, FastAPI with Univcorn!"}
+# Entry point: `uvicorn main:app --reload` from the backend/ directory.
+from app.main import app  # noqa: F401
