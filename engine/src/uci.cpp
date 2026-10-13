@@ -1,5 +1,6 @@
 #include "uci.h"
 
+#include <cctype>
 #include <iostream>
 #include <sstream>
 

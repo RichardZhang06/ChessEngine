@@ -1,37 +1,9 @@
 #include <chrono>
 #include <thread>
 
+#include "mate_solver.h"
 #include "search.h"
 #include "test_util.h"
-
-// Independent brute-force check: can the side to move force checkmate within `n` of its own moves?
-static bool forced_mate(Position& pos, int n) {
-  MoveList moves;
-  generate_legal(pos, moves);
-  for (Move m : moves) {
-    pos.make(m);
-    MoveList replies;
-    generate_legal(pos, replies);
-    bool wins = false;
-    if (replies.count == 0) {
-      wins = pos.in_check();
-    } else if (n > 1) {
-      wins = true;
-      for (Move r : replies) {
-        pos.make(r);
-        bool still = forced_mate(pos, n - 1);
-        pos.unmake();
-        if (!still) {
-          wins = false;
-          break;
-        }
-      }
-    }
-    pos.unmake();
-    if (wins) return true;
-  }
-  return false;
-}
 
 static SearchResult run(const char* fen, int depth, std::string* last_info = nullptr) {
   Position pos;
