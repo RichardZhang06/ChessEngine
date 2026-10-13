@@ -35,6 +35,25 @@ Each opening is played with both colors. Stockfish's `UCI_Elo` is calibrated for
 100 ms per move the absolute numbers are unreliable (higher levels come out much weaker than nominal). Use it mainly
 to compare two versions of this engine: build both and run each against the same Stockfish levels.
 
+## Strength regression test
+
+`tools/regression.py` rates the engine against deterministic sample opponents (`tools/sample_engine.cpp`: levels 0-6,
+from a random mover to a material-only search 5 plies deep) and fails CI if the rating falls more than `max_drop`
+(150) below the stored baseline, if the engine plays an illegal move, crashes or hangs, or if it scores under 90%
+against the two weakest opponents. About 420 games take ~20 s on 8 cores.
+
+```
+backend/.venv/bin/python engine/tools/regression.py                    # check against the baseline
+backend/.venv/bin/python engine/tools/regression.py --update-baseline  # after an intentional strength change
+backend/.venv/bin/python engine/tools/regression.py --calibrate        # re-fit the opponents' ratings (rarely needed)
+backend/.venv/bin/pytest engine/tools/test_regression.py               # tests for the rating maths and opponents
+```
+
+The engine searches to a fixed depth (3) and the opponents are seeded, so the same code always plays the same games
+and gets the same rating on any machine. The ratings are on an internal scale (fitted from games between the
+opponents, centred on 1500), not comparable to Lichess or FIDE Elo. A change that adds strength raises the number;
+if you intentionally trade strength for something else, update the baseline in the same commit and say so.
+
 ## Layout
 
 | File | What it does |
@@ -46,6 +65,7 @@ to compare two versions of this engine: build both and run each against the same
 | `src/tt.*` | Transposition table |
 | `src/search.*` | Iterative deepening alpha-beta (PVS, null move, LMR, quiescence) and time management |
 | `src/uci.*`, `src/main.cpp` | UCI protocol loop |
+| `tools/` | `match.py` (vs Stockfish), `regression.py` + `sample_engine.cpp` (rating regression test), `ratings.json` |
 | `tests/*_test.cpp` | Perft (published node counts), position, eval, search (mates checked by brute force), TT, UCI |
 
 ## Options

@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   engine:
-    name: Engine (build, perft, search regression)
+    name: Engine (build, perft, search and strength regression)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +21,15 @@ jobs:
           cmake --build engine/build -j
       - name: Tests (perft, position, eval, search, tactical regression suite, UCI)
         run: ctest --test-dir engine/build --output-on-failure
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install python-chess and pytest
+        run: pip install python-chess pytest
+      - name: Tests for the rating tools and sample opponents
+        run: pytest -q engine/tools/test_regression.py
+      - name: Strength regression (play the sample opponents, fail if the rating drops a lot)
+        run: python engine/tools/regression.py --workers 4
 
   backend:
     name: Backend (pytest, including the real engine)

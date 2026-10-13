@@ -23,6 +23,10 @@ target_link_libraries(engine_core PUBLIC Threads::Threads)
 add_executable(engine src/main.cpp)
 target_link_libraries(engine engine_core)
 
+# Simple opponents used by tools/regression.py to rate the engine
+add_executable(sample_engine tools/sample_engine.cpp)
+target_link_libraries(sample_engine engine_core)
+
 enable_testing()
 file(GLOB TEST_SOURCES tests/*_test.cpp)
 foreach(test_src ${TEST_SOURCES})
