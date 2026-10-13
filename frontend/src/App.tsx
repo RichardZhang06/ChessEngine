@@ -1,6 +1,6 @@
 import { Chess } from 'chess.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createGame, resign, submitMove, type Color, type GameState } from './api'
+import { ApiError, createGame, resign, submitMove, type Color, type GameState } from './api'
 import { applyMove, parseFen, squareCoords, squareName, type Board, type Piece } from './chess'
 import { backgrounds } from './backgrounds'
 import { boardThemes } from './boards'
@@ -154,13 +154,15 @@ function App() {
       sync(await submitMove(gameId, move))
     } catch (e) {
       setBoard(prev)
-      setError((e as Error).message)
+      // An illegal move (400) is silently ignored; other failures are shown
+      if (!(e instanceof ApiError && e.status === 400)) setError((e as Error).message)
     } finally {
       setBusy(false)
     }
   }
 
   function attemptMove(from: string, to: string) {
+    if (!targets.has(to)) return // not a legal destination: do nothing
     const { rankIdx } = squareCoords(to)
     const src = squareCoords(from)
     const p = board[src.rankIdx][src.file]
