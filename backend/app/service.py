@@ -47,3 +47,18 @@ async def engine_reply(game: Game, engine: Engine, movetime_ms: int) -> None:
     if move not in game.board.legal_moves:
         raise EngineError(f"engine returned an illegal move: {uci}")
     game.board.push(move)
+
+
+def undo_last_turn(game: Game) -> bool:
+    """Take back the engine's last reply (if any) and the human move before it.
+
+    Returns False, leaving the game untouched, if the human has no move to take back.
+    """
+    board = game.board.copy()
+    if board.move_stack and board.turn == game.human.chess:
+        board.pop()  # the engine's reply
+    if not board.move_stack or board.turn == game.human.chess:
+        return False
+    board.pop()  # the human's move
+    game.board = board
+    return True

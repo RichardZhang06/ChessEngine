@@ -3,7 +3,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from . import service
 from .config import Settings
 from .engine import Engine
-from .models import Color, CreatedGame, CreateGameRequest, GameDetail, GameState, MoveRequest
+from .models import (
+    AnalysisRequest,
+    AnalysisResult,
+    Color,
+    CreatedGame,
+    CreateGameRequest,
+    GameDetail,
+    GameState,
+    MoveHistory,
+    MoveRequest,
+)
 from .rules import IllegalMove, parse_legal_move
 from .store import Game, GameStore
 
@@ -85,3 +95,37 @@ async def submit_move(
 async def get_game(game_id: str, store: GameStore = Depends(get_store)):
     """Current state of a game, including the human's color, so a client can resume after a refresh."""
     return service.game_detail(find_game(game_id, store))
+
+
+@router.get("/games/{game_id}/moves", response_model=MoveHistory)
+async def get_moves(game_id: str, store: GameStore = Depends(get_store)):
+    return MoveHistory(moves=service.game_state(find_game(game_id, store)).moves)
+
+
+@router.post("/games/{game_id}/undo", response_model=GameState)
+async def undo(game_id: str, store: GameStore = Depends(get_store)):
+    """Take back your last move together with the engine's reply to it."""
+    game = find_game(game_id, store)
+    async with game.lock:
+        if game.resigned_by is not None:
+            raise HTTPException(409, "Cannot undo a resigned game")
+        if not service.undo_last_turn(game):
+            raise HTTPException(409, "No move to undo")
+        return service.game_state(game)
+
+
+@router.post("/games/{game_id}/analysis", response_model=AnalysisResult)
+async def analysis(
+    game_id: str,
+    body: AnalysisRequest | None = None,
+    store: GameStore = Depends(get_store),
+    engine: Engine = Depends(get_engine),
+    settings: Settings = Depends(get_settings),
+):
+    """Engine evaluation of the current position (does not change the game)."""
+    game = find_game(game_id, store)
+    async with game.lock:
+        moves = [m.uci() for m in game.board.move_stack]
+        movetime = (body.movetime_ms if body and body.movetime_ms else settings.engine_movetime_ms)
+        result = await engine.analyze(moves, movetime)
+    return AnalysisResult(**vars(result))
