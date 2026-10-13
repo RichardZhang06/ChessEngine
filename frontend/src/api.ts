@@ -11,6 +11,15 @@ export interface GameState {
   result: string | null
 }
 
+/** Engine analysis of a position. Scores are from the point of view of the side to move. */
+export interface AnalysisResult {
+  bestmove: string | null
+  depth: number | null
+  score_cp: number | null // centipawns, null when the engine reports a forced mate instead
+  mate: number | null // moves until mate; negative when the side to move is the one getting mated
+  pv: string[]
+}
+
 export class ApiError extends Error {
   status: number
   constructor(message: string, status: number) {
@@ -51,3 +60,6 @@ export const submitMove = (id: string, move: string) =>
 
 export const resign = (id: string) =>
   request<GameState>(`/games/${id}/moves`, { action: 'resign' })
+
+export const analyze = (id: string, movetimeMs?: number) =>
+  request<AnalysisResult>(`/games/${id}/analysis`, movetimeMs ? { movetime_ms: movetimeMs } : {})

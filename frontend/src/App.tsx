@@ -1,8 +1,10 @@
 import { Chess } from 'chess.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ApiError, createGame, resign, submitMove, type Color, type GameState } from './api'
+import { analyze, ApiError, createGame, resign, submitMove, type Color, type GameState } from './api'
 import { applyMove, parseFen, squareCoords, squareName, type Board, type Piece } from './chess'
 import { backgrounds } from './backgrounds'
+import { EvalBar } from './EvalBar'
+import { toWhitePerspective, type Evaluation } from './evaluation'
 import { boardThemes } from './boards'
 import { pieceImage, pieceLabel, pieceSets } from './pieces'
 import './App.css'
@@ -54,6 +56,8 @@ function App() {
     load('background', backgrounds[0].name, backgrounds.map((b) => b.name)),
   )
   const background = backgrounds.find((b) => b.name === bgName) ?? backgrounds[0]
+  const [showEval, setShowEval] = useState(() => load('showEval', 'false', ['true', 'false']) === 'true')
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
 
   useEffect(() => {
     const root = document.documentElement
@@ -102,6 +106,22 @@ function App() {
       return new Set<string>()
     }
   }, [selected, game])
+
+  // Optional evaluation: ask the engine for a quick score of the current position whenever it changes
+  useEffect(() => {
+    const stillPlaying = game !== null && game.status === 'playing'
+    if (!showEval || !gameId || !stillPlaying) {
+      setEvaluation(null)
+      return
+    }
+    let cancelled = false
+    analyze(gameId, 300)
+      .then((result) => !cancelled && setEvaluation(toWhitePerspective(result, game.turn)))
+      .catch(() => !cancelled && setEvaluation(null)) // the evaluation is a nice-to-have: never show an error for it
+    return () => {
+      cancelled = true
+    }
+  }, [showEval, gameId, game])
 
   function sync(g: GameState) {
     setGame(g)
@@ -271,7 +291,8 @@ function App() {
   return (
     <main className="app">
       <div className="layout">
-        <div>
+        <div className="board-wrap">
+          {showEval && <EvalBar evaluation={evaluation} flipped={human === 'black'} />}
           <div
             className="board"
             style={{ '--light': theme.light, '--dark': theme.dark, '--mark': theme.mark } as React.CSSProperties}
@@ -413,6 +434,17 @@ function App() {
                     <option key={t.name} value={t.name}>{t.name}</option>
                   ))}
                 </select>
+              </label>
+              <label className="field check">
+                <input
+                  type="checkbox"
+                  checked={showEval}
+                  onChange={(e) => {
+                    setShowEval(e.target.checked)
+                    save('showEval', String(e.target.checked))
+                  }}
+                />
+                Show evaluation
               </label>
               <label className="field">
                 Background

@@ -54,3 +54,13 @@ button:disabled { opacity: 0.5; cursor: default; }
 .square img.drag-origin { opacity: 0.35; }
 .ghost { position: fixed; z-index: 1000; pointer-events: none; display: flex; align-items: center; justify-content: center; }
 .ghost img { width: 90%; height: 90%; object-fit: contain; }
+.board-wrap { display: flex; gap: 8px; align-items: stretch; }
+.field.check { display: flex; align-items: center; gap: 6px; }
+.evalbar { position: relative; flex: none; width: 34px; background: #262626; border: 2px solid var(--text-h); border-radius: 4px; overflow: hidden; }
+.evalbar-white { position: absolute; left: 0; right: 0; bottom: 0; background: #f5f5f5; transition: height 0.3s; }
+.evalbar.flipped .evalbar-white { bottom: auto; top: 0; }
+.evalbar-label { position: absolute; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 600; pointer-events: none; }
+.evalbar-label.on-white { bottom: 3px; color: #262626; }
+.evalbar-label.on-black { top: 3px; color: #f5f5f5; }
+.evalbar.flipped .evalbar-label.on-white { bottom: auto; top: 3px; }
+.evalbar.flipped .evalbar-label.on-black { top: auto; bottom: 3px; }
