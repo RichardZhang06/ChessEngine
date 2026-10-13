@@ -11,6 +11,14 @@ export interface GameState {
   result: string | null
 }
 
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
 async function request<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {
     method: 'POST',
@@ -30,7 +38,7 @@ async function request<T>(path: string, body: unknown): Promise<T> {
       409: 'Game is over or not your turn',
       500: 'Backend error',
     }
-    throw new Error(detail || messages[res.status] || `Request failed (${res.status})`)
+    throw new ApiError(detail || messages[res.status] || `Request failed (${res.status})`, res.status)
   }
   return res.json()
 }
