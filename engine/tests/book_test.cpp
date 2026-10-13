@@ -81,16 +81,24 @@ int main() {
       return false;
     };
     uci.handle("uci");
-    CHECK(has("option name OwnBook type check default false"));
+    CHECK(has("option name OwnBook type check default true"));
+    uci.handle("setoption name BookSeed value 5");
     uci.handle("position startpos");
     uci.handle("go depth 2");
     uci.wait_for_search();
-    CHECK(has("info depth"));  // searched: the book is off by default
+    CHECK(has("info string book move"));  // the book is on by default
+    CHECK(!has("info depth"));
+
+    lines.clear();
+    uci.handle("setoption name OwnBook value false");
+    uci.handle("position startpos");
+    uci.handle("go depth 2");
+    uci.wait_for_search();
+    CHECK(has("info depth"));  // book off: the engine searches
     CHECK(!has("info string book move"));
 
     lines.clear();
     uci.handle("setoption name OwnBook value true");
-    uci.handle("setoption name BookSeed value 5");
     uci.handle("position startpos");
     uci.handle("go movetime 100");
     uci.wait_for_search();

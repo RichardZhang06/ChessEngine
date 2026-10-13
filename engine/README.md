@@ -72,8 +72,8 @@ if you intentionally trade strength for something else, update the baseline in t
 ## Options
 
 - `Hash` (MB, default 16, range 1-4096)
-- `OwnBook` (default false): answer `go` from the opening book while the game is in known theory. Ignored for
-  `go infinite`. The backend turns it on.
+- `OwnBook` (default true): answer `go` from the opening book while the game is in known theory. Ignored for
+  `go infinite`. The strength tools (`regression.py`, `match.py`) turn it off so they measure the search.
 - `BookFile` (default `<embedded>`): load a different book (same text format as `book/openings.txt`).
 - `BookSeed` (default 0): seed for choosing among book moves; 0 gives a different choice each time.
 

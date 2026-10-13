@@ -8,6 +8,7 @@
 struct Harness {
   std::vector<std::string> lines;
   Uci uci{[this](const std::string& l) { lines.push_back(l); }};
+  Harness() { uci.handle("setoption name OwnBook value false"); }  // these tests exercise the search, not the book
   void send(const std::string& cmd) { uci.handle(cmd); }
   bool has(const std::string& prefix) const {
     for (auto& l : lines)

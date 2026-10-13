@@ -53,7 +53,7 @@ def play_game(args):
     ours = chess.engine.SimpleEngine.popen_uci(str(engine_path))
     sf = chess.engine.SimpleEngine.popen_uci(sf_path)
     try:
-        ours.configure({"Hash": hash_mb})
+        ours.configure({"Hash": hash_mb, "OwnBook": False})  # measure the search, not the book
         sf.configure({"UCI_LimitStrength": True, "UCI_Elo": sf_elo, "Threads": 1, "Hash": hash_mb})
         forfeit = None
         while not board.is_game_over(claim_draw=True) and len(board.move_stack) < MAX_PLIES:

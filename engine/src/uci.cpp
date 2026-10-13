@@ -54,7 +54,7 @@ bool Uci::handle(const std::string& line) {
     send(std::string("id name ") + ENGINE_NAME);
     send(std::string("id author ") + ENGINE_AUTHOR);
     send("option name Hash type spin default " + std::to_string(DEFAULT_HASH_MB) + " min 1 max 4096");
-    send("option name OwnBook type check default false");
+    send("option name OwnBook type check default true");
     send("option name BookFile type string default <embedded>");
     send("option name BookSeed type spin default 0 min 0 max 2147483647");
     send("uciok");

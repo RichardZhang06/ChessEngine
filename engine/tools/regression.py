@@ -192,7 +192,7 @@ def evaluate(args, data):
     sample_path = BUILD / "sample_engine"
     depth, games = args.depth or cfg["depth"], args.games or cfg["games_per_level"]
     pairs = (games + 1) // 2
-    ours = (engine_path, {}, depth)
+    ours = (engine_path, {"OwnBook": False}, depth)  # measure the search, not the book
     jobs, keys = [], []
     for lvl in LEVELS:
         for i in range(pairs):

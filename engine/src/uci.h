@@ -46,7 +46,7 @@ class Uci {
   TranspositionTable tt_;
   Search search_;
   OpeningBook book_;
-  bool own_book_ = false;
+  bool own_book_ = true;
   std::mt19937_64 book_rng_;
   std::thread worker_;
 
