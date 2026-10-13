@@ -176,6 +176,7 @@ void Uci::cmd_perft(int depth) {
 }
 
 void Uci::start_search(const SearchLimits& limits) {
+  search_.clear_stop();  // before the thread starts, so a `stop` right after `go` can't be lost
   {
     std::lock_guard<std::mutex> lock(stop_mutex_);
     stop_requested_ = false;

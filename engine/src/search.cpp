@@ -247,7 +247,6 @@ void Search::report(int depth, int score) {
 }
 
 SearchResult Search::go(Position& pos, const SearchLimits& limits, InfoCallback info) {
-  stop_.store(false);
   info_ = std::move(info);
   start_ = std::chrono::steady_clock::now();
   nodes_ = 0;

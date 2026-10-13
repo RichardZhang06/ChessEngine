@@ -44,6 +44,9 @@ class Search {
   // Blocks until the search finishes, hits a limit, or stop() is called from another thread.
   SearchResult go(Position& pos, const SearchLimits& limits, InfoCallback info = nullptr);
   void stop() { stop_.store(true); }
+  // go() does not clear a pending stop(), so a stop() that arrives just before the search thread gets going still
+  // ends the search. Call this before starting a new search.
+  void clear_stop() { stop_.store(false); }
   void new_game();
 
  private:

@@ -91,6 +91,16 @@ int main() {
     CHECK(h.has("bestmove "));
   }
   {
+    // a stop sent immediately after go must not be lost (the search thread may not have started yet)
+    for (int i = 0; i < 50; i++) {
+      Harness h;
+      h.send("position startpos");
+      h.send("go infinite");
+      h.send("stop");
+      CHECK(h.has("bestmove "));
+    }
+  }
+  {
     // no legal moves: bestmove 0000
     Harness h;
     h.send("position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1");
