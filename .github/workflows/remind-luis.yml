@@ -1,0 +1,21 @@
+name: Remind Luis about open tickets
+
+on:
+  schedule:
+    - cron: "0 14 * * *" # every day at 14:00 UTC (10:00 US Eastern during daylight saving time)
+  workflow_dispatch: # run it by hand from the Actions tab
+
+permissions:
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Post the reminder
+        run: bash .github/scripts/remind.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ASSIGNEE: luiscallehunscher
