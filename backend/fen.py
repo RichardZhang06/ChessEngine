@@ -6,7 +6,8 @@ class Board:
         # each of the 12 attributes below are bitboard for piece positions.
         # 1 indicates a piece is there, 0 indicates not.
         # it is a row dominant representation of the chess board, starting
-        # at h1 and ending at a8, so a total of 64 bits (FEN).
+        # at a1 and ending at h8, so a total of 64 bits. 
+        # not quite following fen format of board due to simpler computation.
         self.white_pawns: int = 0
         self.white_bishops: int = 0
         self.white_knights: int = 0
@@ -28,8 +29,8 @@ class Board:
         # 1 means legal, 0 means illegal, position corresponds to FEN "KQkq"
         self.castling_rights: int = 0
 
-        # integer representing en passant square: -1 if possible, else board
-        # position from 0-63
+        # integer representing en passant square: -1 if not possible, else the
+        # board position from 0-63, representing a1-h8.
         self.en_passant_square: int = -1
 
         # halfmove clock ranges from 0 to 100
@@ -62,11 +63,11 @@ class Board:
         
         if fen_en_passant != "-":
             # no need to change if no en passant move, due to initialisation
-            # converts letterNumber move format to correct board position
+            # converts <letterNumber> move format to correct board position
             col = ord(fen_en_passant[0]) - ord("a")
             row = int(fen_en_passant[1]) - 1
             # have to offset
-            self.en_passant_square = 8 * row + (7 - col)
+            self.en_passant_square = 8 * row + col
 
         # no need to case on "-", due to initialisation to 0000
         if "K" in fen_castling:
@@ -87,7 +88,7 @@ class Board:
                 char: str = curr_row[string_index]
                 # offset is how much to shift a 1 bit to get it to the correct
                 # index within a bitboard
-                offset: int = 63 - (8 * row_index + col_index)
+                offset: int = 8 * (7 - row_index) + col_index
                 position_bit: int = 0b1 << offset
                 if char == "P":
                     self.white_pawns = self.white_pawns | position_bit
@@ -123,7 +124,82 @@ class Board:
     
 
     def gen_fen(self):
-        fen_str = ""
-        return fen_str
+        # initialising library to easily check all boards
+        pieces = [(self.white_pawns,   "P"), (self.white_knights, "N"),
+                  (self.white_bishops, "B"), (self.white_rooks,   "R"),
+                  (self.white_queens,  "Q"), (self.white_kings,   "K"),
+                  (self.black_pawns,   "p"), (self.black_knights, "n"),
+                  (self.black_bishops, "b"), (self.black_rooks,   "r"),
+                  (self.black_queens,  "q"), (self.black_kings,   "k")]
+        # rows is a matrix of strings, representing each row in FEN notation
+        rows = []
+        # loop through all rows, from 8 to 1 (FEN notation)
+        for row_index in range(7, -1, -1):
+            row_str = ""
+            # gap is number of empty spaces until next piece or end of row
+            gap = 0
+            # loop through all columns in each row, from 1 to 8 (FEN notation)
+            for col_index in range(8):
+                # offsetting comparison bit to correct bit of each bitboard
+                offset = row_index * 8 + col_index
+                bit = 1 << offset
+                curr_piece_char = ""
+                for (bitboard, piece_char) in pieces:
+                    # and operation on bits, will return 1 (True) if piece in 
+                    # the specified position
+                    if bitboard & bit:
+                        # specifying which piece to add to the string
+                        curr_piece_char = piece_char
+                        break
+                # if curr_piece_char unchanged, no piece there, so increment gap
+                if curr_piece_char == "":
+                    gap += 1
+                    continue
+                # if curr_piece_char is a symbol, add empty squares and piece
+                if gap != 0:
+                    row_str += str(gap)
+                    gap = 0
+                row_str += curr_piece_char
+            # add any trailing empty squares, as loop above only adds to string
+            # if a character is reached
+            if gap != 0:
+                row_str += str(gap)
+            rows.append(row_str)
+        # produces single line string that represents board found above
+        fen_board = "/".join(rows)
+
+        # getting character for whose turn is next
+        if self.white_to_move == True:
+            color = "w"
+        else:
+            color = "b"
+
+        # converting castling rights to KQkq format string
+        castling = ""
+        if self.castling_rights & 0b1000:
+            castling += "K"
+        if self.castling_rights & 0b0100:
+            castling += "Q"
+        if self.castling_rights & 0b0010:
+            castling += "k"
+        if self.castling_rights & 0b0001:
+            castling += "q"
+        if castling == "":
+            castling += "-"
+        
+        # converting en passant square to letterNumber format
+        if self.en_passant_square == -1:
+            en_passant = "-"
+        else:
+            col = self.en_passant_square % 8
+            row = self.en_passant_square // 8
+            en_passant = chr(ord('a') + col) + str(row + 1)
+        
+        # direct int to string conversion for these values
+        halfmove = str(self.halfmove_clock)
+        fullmove = str(self.fullmove_number)
+
+        # joins all parts together into one string, separated by spaces
+        return f"{fen_board} {color} {castling} {en_passant} {halfmove} {fullmove}"
 
 
