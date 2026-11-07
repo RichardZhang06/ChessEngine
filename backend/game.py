@@ -1,7 +1,8 @@
 import json
 
 
-# class that contains all info about a current game
+# class that contains all info about a current game, for use in 
+# interacting with the frontend
 # documentation can be found in README.md
 class Game:
     def __init__(self, game_id, moves, last_move, fen, turn, status, result):
